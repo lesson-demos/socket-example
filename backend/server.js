@@ -1,41 +1,29 @@
 const express = require("express");
-const morgan = require("morgan");
-const app = express();
-const cors = require("cors");
+const { Server } = require("socket.io");
+const { createServer } = require("http");
 
-const server = require("http").createServer(app);
-const io = require("socket.io")(server, {
+const PORT = 4000;
+const CLIENT_DOMAIN = `http://localhost:3333`
+
+const app = express();
+const server = createServer(app);
+const io = new Server(server, {
   cors: {
-    origin: "http://localhost:4000",
+    origin: CLIENT_DOMAIN,
     methods: ["GET", "POST"],
     allowedHeaders: ["*"],
   }
 });
 
-const PORT = 4001;
-
 io.on("connection", client => {
-
-  client.on("greet", data => {
-    client.broadcast.emit("greet", data);
+  client.on("newGameState", data => {
+    debugger
+    client.broadcast.emit("newGameState", data);
   });
 
   client.on("disconnect", () => {
     console.log("disconnected");
   });
 });
-
-app.use(morgan());
-app.use(express.json());
-app.use(cors())
-
-app.get("/", (req, res) => {
-  console.log("here");
-  res.sendStatus(200);
-});
  
-server.listen(PORT+1);
-app.listen(PORT, () => {
-  console.log(`Your backend is listening on port ${PORT}`);
-  console.log(`Your socket server is listening on port ${PORT+1}`);
-});
+server.listen(PORT);

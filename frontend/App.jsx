@@ -1,61 +1,38 @@
-import React, { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import React, { useEffect, useState, useContext } from "react";
+import { gameStateContext } from "./gameStateContext";
 
 export default function App() {
-  const [socket, setSocket] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
+  const {
+    gameState,
+    emitNewGameState,
+  } = useContext(gameStateContext)
+  const [board, setBoard] = useState([]);
 
   useEffect(() => {
-    const socketClient = io("http://localhost:4002");
+    setBoard(gameState.board);
+  }, [gameState]);
 
-    socketClient.on("connect", () => {
-      console.log("connected with id:" + socketClient.id);
+  const submitMove = (i, j) => () => {
+    const newBoard = board.map(row => row.slice());
+    if (newBoard[i][j]) return; // don't allow moves where the cell has already been taken
+    newBoard[i][j] = gameState.turnIndex % 2 ? -1 : 1;
+    emitNewGameState({
+      board: newBoard,
+      turnIndex: gameState.turnIndex + 1,
     });
-
-    socketClient.on("disconnect", () => {
-      console.log("disconnected");
-    });
-
-    socketClient.on("greet", (message) => {
-      console.log("got", message)
-      setMessages((prev) => [...prev, message])
-    });
-
-    setSocket(socketClient);
-  }, []);
-
-  const onClick = (e) => {
-    e.preventDefault();
-    if (socket) {
-      const message = { id: socket.id, message: text };
-      socket.emit("greet", message);
-      setMessages((prev) => [...prev, message]);
-      setText("");
-    }
   }
 
   return (
-    <>
-      <div style={{ width: "300px", display: "flex", flexDirection: "column" }}>
-        {messages.map((message, i) => (
-          <div key={i} style={{
-            display: "flex",
-            justifyContent: message.id === socket.id ? "end" : "start"
-          }}>
-            <div style={{
-              maxWidth: "200px",
-              backgroundColor: message.id === socket.id ? "#478eff" : "#d2d3d6",
-              padding: "5px",
-              borderRadius: "10px"
-            }}>{message.message}</div>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={onClick}>
-        <input value={text} onChange={(e) => setText(e.target.value)}/>
-        <button type="submit">Send</button>
-      </form>
-    </>
-  );
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      {board?.map((row, i) => (
+        <div key={i} style={{ display: "flex" }}>
+          {row.map((cell, j) => (
+            <button onClick={submitMove(i, j)} key={`${i}, ${j}`}>
+              {cell < 0 ? "O" : cell > 0 ? "X" : "_"}
+            </button>)
+          )}
+        </div>
+      ))}
+    </div>
+  )
 }

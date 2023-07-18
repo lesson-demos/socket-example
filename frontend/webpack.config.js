@@ -29,6 +29,6 @@ module.exports = {
       ],
     },
     compress: false,
-    port: 4000,
+    port: 3333,
   },
 };
